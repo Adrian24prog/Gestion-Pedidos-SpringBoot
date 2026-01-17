@@ -1,0 +1,120 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+public class App {
+
+    // Constantes de prueba (las mismas de tu código antiguo)
+    private static final String NIF_CRUD = "B9876543B";
+    private static final String NOMBRE_CRUD = "Pedro Perez";
+    private static final String EMAIL_CRUD = "pedro.ruiz@testcorpaaaaaa.com";
+    private static final String ARTICULO_NOMBRE_CRUD = "Teclado Mecánico PROoo";
+    private static final String ARTICULO_DESC_CRUD = "Teclado compacto para gaminnnng";
+    private static final BigDecimal ARTICULO_PRECIO_CRUD = new BigDecimal("122.00");
+    private static final Integer ARTICULO_STOCK_CRUD = 25;
+
+    public static void main(String[] args) {
+        // 1. Arrancar el contexto de Spring (Backend)
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev")
+                .run(args);
+
+        System.out.println("\n>>> BACKEND CONECTADO - INICIANDO DEMOSTRACIÓN CRUD <<<");
+
+        // 2. Obtener los Repositorios (Sustituyen al EntityManager)
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        try {
+            // --- SECCIÓN LIMPIEZA ---
+            System.out.println("\nLimpiando datos previos...");
+            if (clienteRepo.existsById(NIF_CRUD)) {
+                clienteRepo.deleteById(NIF_CRUD);
+                System.out.println("Limpieza completada.");
+            }
+
+            // --- CRUD CLIENTE ---
+            // CREATE
+            System.out.println("\nCREATE: Creando Cliente.");
+            Cliente cliente = new Cliente();
+            cliente.setNifCif(NIF_CRUD);
+            cliente.setNombre(NOMBRE_CRUD);
+            cliente.setEmail(EMAIL_CRUD);
+            cliente.setFechaRegistro(LocalDate.now());
+            clienteRepo.save(cliente);
+            System.out.println("Cliente guardado exitosamente.");
+
+            // UPDATE
+            System.out.println("UPDATE: Modificando nombre del Cliente.");
+            cliente.setNombre("Pedro Ruíz (Verificado)");
+            clienteRepo.save(cliente);
+
+            // --- CRUD ARTICULO ---
+            // CREATE
+            System.out.println("\nCREATE: Creando Articulo.");
+            Articulo art = new Articulo();
+            art.setNombre(ARTICULO_NOMBRE_CRUD);
+            art.setDescripcion(ARTICULO_DESC_CRUD);
+            art.setPrecioActual(ARTICULO_PRECIO_CRUD);
+            art.setStock(ARTICULO_STOCK_CRUD);
+            art.setActivo(true);
+            art = articuloRepo.save(art); // Guardamos y recuperamos con ID generado
+            System.out.println("Articulo creado con ID: " + art.getId());
+
+            // --- OPERACIÓN DE COMPRA (PEDIDO) ---
+            System.out.println("\nCREATE: Realizando un pedido.");
+            Compra compra = new Compra();
+            compra.setCliente(cliente);
+            compra.setFechaRealizada(LocalDateTime.now());
+            compra.setEstado(EstadoCompra.PENDIENTE);
+            compra.setPrecioTotal(ARTICULO_PRECIO_CRUD.multiply(new BigDecimal(2))); // Ejemplo: 2 unidades
+            compra = compraRepo.save(compra); // Guardamos cabecera
+
+            // Crear línea de detalle
+            ArticuloCompra linea = new ArticuloCompra();
+            linea.setCompra(compra);
+            linea.setArticulo(art);
+            linea.setUnidades(2);
+            linea.setPrecioCompra(art.getPrecioActual());
+            lineaRepo.save(linea);
+            System.out.println("Compra y línea de detalle guardadas.");
+
+            // --- READ ALL ---
+            System.out.println("\nREAD: Listando clientes actuales:");
+            clienteRepo.findAll().forEach(c -> System.out.println("- " + c.getNombre()));
+
+            // --- DELETE ---
+            // Anulación lógica de artículo
+            System.out.println("\nDELETE LÓGICO: Desactivando artículo.");
+            art.setActivo(false);
+            articuloRepo.save(art);
+            System.out.println("Artículo desactivado (activo = false).");
+
+            // Borrado físico de cliente
+            System.out.println("DELETE FÍSICO: Eliminando cliente.");
+            clienteRepo.deleteById(NIF_CRUD);
+            System.out.println("Cliente eliminado de la base de datos.");
+
+            System.out.println("\n-------------------------------------------------");
+            System.out.println(">>> DEMOSTRACIÓN FINALIZADA CON ÉXITO <<<");
+            System.out.println("-------------------------------------------------");
+
+        } catch (Exception e) {
+            System.err.println("\n>>> ERROR EN LA EJECUCIÓN: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // context.close(); // Descomentar si quieres que la consola se cierre al terminar
+        }
+    }
+}

@@ -1,0 +1,60 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.Cliente;
+import com.adriandondarza.gestionpedidos.springboot.model.InfoFiscal;
+import com.adriandondarza.gestionpedidos.springboot.repository.InfoFiscalRepository;
+import com.adriandondarza.gestionpedidos.springboot.repository.ClienteRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
+
+@Service
+public class InfoFiscalService {
+
+    @Autowired
+    private InfoFiscalRepository infoFiscalRepository;
+
+    @Autowired
+    private ClienteRepository clienteRepository;
+
+    @Transactional
+    public InfoFiscalDTO registrarInfoFiscal(InfoFiscalDTO dto) {
+        // 1. CONTROL DE NIF DUPLICADO
+        if (infoFiscalRepository.existsById(dto.getNifCif())) {
+            throw new RuntimeException("Error: Ya existe un registro con el NIF " + dto.getNifCif());
+        }
+
+        // 2. CONTROL DE EMAIL DUPLICADO
+        // Generamos el email igual que antes para comprobar si ya está en uso
+        String emailGenerado = dto.getNifCif().toLowerCase() + "@mail.com";
+        if (clienteRepository.existsByEmail(emailGenerado)) {
+            throw new RuntimeException("Error: El email " + emailGenerado + " ya está registrado en el sistema.");
+        }
+
+        InfoFiscal info = new InfoFiscal(dto.getNifCif(), dto.getDireccionFiscal(), dto.getTelefono());
+        
+        Cliente cliente = new Cliente();
+        cliente.setNombre(dto.getNombreCliente());
+        cliente.setEmail(emailGenerado);
+        cliente.setFechaRegistro(LocalDate.now());
+
+        // Vincular ambos
+        info.setCliente(cliente);
+        cliente.setInformacionFiscal(info);
+
+        // Guardar el padre (que arrastra al hijo)
+        infoFiscalRepository.saveAndFlush(info);
+
+        return dto;
+    }
+
+    @Transactional
+    public void eliminarInfoFiscal(String nif) {
+        if (!infoFiscalRepository.existsById(nif)) {
+            throw new RuntimeException("Error: No se puede eliminar. No existe información fiscal con NIF: " + nif);
+        }
+        infoFiscalRepository.deleteById(nif);
+    }
+}

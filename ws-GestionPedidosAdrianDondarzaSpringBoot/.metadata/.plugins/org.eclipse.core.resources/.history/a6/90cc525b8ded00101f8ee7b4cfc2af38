@@ -1,0 +1,5 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+public class InfoFiscalService {
+
+}

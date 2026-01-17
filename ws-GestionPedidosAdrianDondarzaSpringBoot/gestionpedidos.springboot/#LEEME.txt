@@ -1,0 +1,50 @@
+======================================================================
+SISTEMA DE GESTIÓN DE PEDIDOS - LIBRERÍA BACKEND Y FRONT-END
+======================================================================
+
+AUTOR: Adrian Dondarza
+VERSIÓN: 1.0
+FECHA: 15 de enero de 2026
+TECNOLOGÍAS: Java 21, Spring Boot 3.2.0, Oracle DB, Maven.
+
+----------------------------------------------------------------------
+1. DESCRIPCIÓN DEL PROYECTO
+----------------------------------------------------------------------
+Este proyecto consiste en un backend realista y profesional diseñado 
+como una librería reutilizable. Se ha implementado una arquitectura 
+limpia separada por capas (Controller, Service, Repository, DTO).
+
+El objetivo principal es proporcionar una librería (.jar) que sea 
+consumida por una aplicación de escritorio, restringiendo el acceso 
+del cliente únicamente a los objetos de transferencia de datos (DTO) 
+y a los controladores (Controller).
+
+----------------------------------------------------------------------
+2. ESTRUCTURA DE CAPAS (LIBRERÍA)
+----------------------------------------------------------------------
+* CONTROLLER: Punto de entrada único para la aplicación de escritorio.
+* SERVICE: Lógica de negocio (validación de NIF, stock y duplicados).
+* REPOSITORY: Capa de persistencia mediante Spring Data JPA.
+* DTO: Objetos seguros para el intercambio de datos entre capas.
+* MODEL: Entidades mapeadas para la persistencia en Oracle.
+
+----------------------------------------------------------------------
+3. REQUISITOS DE BASE DE DATOS (ORACLE)
+----------------------------------------------------------------------
+El sistema está diseñado para funcionar sobre un esquema de Oracle. 
+Se incluyen medidas de seguridad e integridad a nivel físico:
+
+* UNIQUE CONSTRAINTS: Garantizan que no existan duplicados en campos 
+  críticos como NIF, Email y Teléfono.
+* TRIGGERS DE SEGURIDAD: Impiden el borrado físico de artículos y 
+  compras, obligando al uso de "Borrado Lógico" (campo ACTIVO).
+
+----------------------------------------------------------------------
+4. FUNCIONALIDADES IMPLEMENTADAS EN EL TEST (App.java)
+----------------------------------------------------------------------
+La aplicación de escritorio simula un flujo completo:
+1. Registro de Información Fiscal y Cliente (con validación de NIF).
+2. Creación de artículos en el catálogo (validación de nombre único).
+3. Procesamiento de pedidos con múltiples líneas de detalle.
+4. Borrado lógico de artículos (conservando integridad referencial).
+======================================================================

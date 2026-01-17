@@ -1,0 +1,31 @@
+package com.adriandondarza.gestionpedidos.springboot.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+@Entity
+@Table(name = "informacion_fiscal")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class InfoFiscal {
+
+    @Id
+    @Column(name = "nif_cif", length = 20)
+    private String nifCif;
+
+    // Aquí activamos la cascada hacia Cliente
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @MapsId 
+    @JoinColumn(name = "nif_cif")
+    @ToString.Exclude
+    private Cliente cliente;
+
+    @Column(name = "direccion_fiscal", nullable = false, length = 255)
+    private String direccionFiscal;
+
+    @Column(nullable = false, length = 20)
+    private String telefono;
+}

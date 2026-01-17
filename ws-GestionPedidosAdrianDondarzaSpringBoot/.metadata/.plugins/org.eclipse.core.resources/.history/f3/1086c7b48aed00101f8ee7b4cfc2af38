@@ -1,0 +1,44 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.repository.ClienteRepository;
+import com.adriandondarza.gestionpedidos.springboot.model.Cliente;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        // 1. Arrancamos el contexto de Spring Boot (el backend) de forma silenciosa
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev") // Usamos el perfil de desarrollo para la conexión a Oracle
+                .run(args);
+
+        System.out.println(">>> BACKEND CARGADO DESDE EL JAR <<<");
+
+        try {
+            // 2. Obtenemos un repositorio del contexto para probar la conexión
+            ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+
+            // 3. Realizamos una consulta a la base de datos Oracle
+            List<Cliente> clientes = clienteRepo.findAll();
+
+            System.out.println("-----------------------------------------");
+            System.out.println("LISTADO DE CLIENTES DESDE EL FRONT:");
+            if (clientes.isEmpty()) {
+                System.out.println("No hay clientes en la base de datos.");
+            } else {
+                clientes.forEach(c -> System.out.println("- " + c.getNombre() + " (" + c.getEmail() + ")"));
+            }
+            System.out.println("-----------------------------------------");
+            System.out.println(">>> PRUEBA DE CONEXIÓN EXITOSA <<<");
+
+        } catch (Exception e) {
+            System.err.println("Error al conectar con el backend: " + e.getMessage());
+        } finally {
+            // Opcional: Si solo es una prueba de consola, cerramos el contexto.
+            // En una app Swing real, lo dejarías abierto mientras la ventana esté activa.
+            // context.close(); 
+        }
+    }
+}

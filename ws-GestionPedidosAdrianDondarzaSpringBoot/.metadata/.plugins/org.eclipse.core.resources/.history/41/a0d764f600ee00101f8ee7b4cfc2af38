@@ -1,0 +1,99 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+public class App {
+
+    public static void main(String[] args) {
+        // 1. Iniciar contexto de Spring Boot (Perfil dev para conectar a Oracle)
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev")
+                .run(args);
+
+        // Generamos un NIF aleatorio para permitir múltiples ejecuciones sin errores de duplicados
+        String nifUnico = "B" + (int)(Math.random() * 1000000);
+        
+        System.out.println("\n>>> INICIANDO PROCESO DE INSERCIÓN COMPLETA <<<");
+
+        // 2. Obtener los Beans necesarios
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        try {
+            // --- PASO 1: CREAR INFO FISCAL Y CLIENTE ---
+            System.out.println("\n[1] Registrando Información Fiscal y Cliente...");
+            InfoFiscalDTO dto = new InfoFiscalDTO();
+            dto.setNifCif(nifUnico);
+            dto.setNombreCliente("Adrian Dondarza - Cliente 3 Unidades");
+            dto.setDireccionFiscal("Avenida de los Olivos 22");
+            dto.setTelefono("654987321");
+            
+            // El servicio guarda InfoFiscal y el Cliente por cascada
+            infoFiscalCtrl.registrarInfoFiscal(dto);
+            System.out.println("- Registros creados correctamente para NIF: " + nifUnico);
+
+            // --- PASO 2: CREAR ARTÍCULO ---
+            System.out.println("\n[2] Creando un nuevo Artículo en el catálogo...");
+            Articulo art = new Articulo();
+            art.setNombre("Teclado Mecánico RGB");
+            art.setDescripcion("Teclado switch blue con retroiluminación personalizada");
+            art.setPrecioActual(new BigDecimal("75.00"));
+            art.setStock(20);
+            art.setActivo(true);
+            
+            art = articuloRepo.save(art);
+            System.out.println("- Artículo guardado con ID: " + art.getId() + " (Precio: 75.00€)");
+
+            // --- PASO 3: CREAR LA COMPRA ---
+            System.out.println("\n[3] Generando Compra vinculada al cliente...");
+            // Recuperamos el cliente recién creado
+            Cliente cliente = clienteRepo.findById(nifUnico).get();
+            
+            int unidadesCompradas = 3; // <--- CONFIGURADO A 3 UNIDADES
+            BigDecimal precioTotalCompra = art.getPrecioActual().multiply(new BigDecimal(unidadesCompradas));
+
+            Compra compra = new Compra();
+            compra.setCliente(cliente);
+            compra.setFechaRealizada(LocalDateTime.now());
+            compra.setEstado(EstadoCompra.PENDIENTE);
+            compra.setPrecioTotal(precioTotalCompra);
+            compra = compraRepo.save(compra);
+            System.out.println("- Cabecera de compra creada (Total: " + precioTotalCompra + "€)");
+
+            // --- PASO 4: REGISTRAR EL DETALLE (3 UNIDADES) ---
+            System.out.println("\n[4] Registrando el detalle de la compra (3 unidades)...");
+            ArticuloCompra detalle = new ArticuloCompra();
+            detalle.setCompra(compra);
+            detalle.setArticulo(art);
+            detalle.setUnidades(unidadesCompradas); // <--- AQUÍ SE INSERTAN LAS 3 UNIDADES
+            detalle.setPrecioCompra(art.getPrecioActual()); // Precio unitario congelado
+            
+            lineaRepo.save(detalle);
+            System.out.println("- Detalle de compra guardado con éxito.");
+
+            // --- FINALIZACIÓN ---
+            System.out.println("\n-------------------------------------------------");
+            System.out.println(">>> ÉXITO: Los datos se han guardado en Oracle <<<");
+            System.out.println("NIF: " + nifUnico);
+            System.out.println("Artículo ID: " + art.getId());
+            System.out.println("Unidades en Compra: " + unidadesCompradas);
+            System.out.println("-------------------------------------------------");
+
+        } catch (Exception e) {
+            System.err.println("\n>>> ERROR EN LA INSERCIÓN: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

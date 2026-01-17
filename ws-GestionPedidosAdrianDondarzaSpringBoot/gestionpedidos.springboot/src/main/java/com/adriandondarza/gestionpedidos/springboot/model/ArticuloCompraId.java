@@ -1,0 +1,45 @@
+package com.adriandondarza.gestionpedidos.springboot.model;
+
+import jakarta.persistence.Embeddable;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.io.Serializable;
+
+/**
+ * Clase que representa la clave primaria compuesta para la entidad {@link ArticuloCompra}.
+ * <p>
+ * Esta clase se utiliza para identificar de forma única la relación entre un artículo 
+ * y una compra. Al estar marcada con {@link Embeddable}, permite que sus campos 
+ * sean integrados directamente en la entidad de asociación.
+ * </p>
+ * <p>
+ * Implementa {@link Serializable} siguiendo los requisitos de JPA para claves compuestas, 
+ * asegurando que el estado del identificador pueda ser persistido y recuperado correctamente.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.0
+ * @since 2026-01-14
+ */
+@Embeddable
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ArticuloCompraId implements Serializable {
+
+	// Identificador de versión para la serialización
+	static final long serialVersionUID = 1L;
+
+	/**
+     * Referencia al identificador del artículo.
+     * Vinculado mediante la anotación {@code MapsId} en la entidad principal.
+     */
+    private Integer articuloId;
+
+    /**
+     * Referencia al identificador de la compra.
+     * Vinculado mediante la anotación {@code MapsId} en la entidad principal.
+     */
+    private Integer compraId;
+}

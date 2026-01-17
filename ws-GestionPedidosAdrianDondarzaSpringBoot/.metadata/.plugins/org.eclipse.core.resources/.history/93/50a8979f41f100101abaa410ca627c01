@@ -1,0 +1,83 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.ClienteDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.Cliente;
+import com.adriandondarza.gestionpedidos.springboot.model.InfoFiscal;
+import com.adriandondarza.gestionpedidos.springboot.repository.ClienteRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class ClienteService {
+
+    @Autowired
+    private ClienteRepository clienteRepository;
+
+    @Transactional
+    public ClienteDTO crearCliente(ClienteDTO dto) {
+        // 1. VALIDACIÓN DE NIF
+        if (clienteRepository.existsById(dto.getNifCif())) {
+            throw new RuntimeException("Validación: El cliente con NIF " + dto.getNifCif() + " ya existe.");
+        }
+
+        // 2. VALIDACIÓN DE EMAIL
+        if (clienteRepository.existsByEmail(dto.getEmail())) {
+            throw new RuntimeException("Validación: El correo " + dto.getEmail() + " ya pertenece a otro cliente.");
+        }
+
+        Cliente cliente = new Cliente();
+        cliente.setNifCif(dto.getNifCif());
+        cliente.setNombre(dto.getNombre());
+        cliente.setEmail(dto.getEmail());
+        cliente.setFechaRegistro(dto.getFechaRegistro() != null ? dto.getFechaRegistro() : LocalDate.now());
+
+        InfoFiscal fiscal = new InfoFiscal();
+        fiscal.setNifCif(dto.getNifCif()); // Importante asignar el ID al padre también
+        fiscal.setDireccionFiscal(dto.getDireccionFiscal());
+        fiscal.setTelefono(dto.getTelefono());
+        
+        // Vincular bidireccional
+        fiscal.setCliente(cliente);
+        cliente.setInformacionFiscal(fiscal);
+
+        Cliente guardado = clienteRepository.save(cliente);
+        return convertirADTO(guardado);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClienteDTO> obtenerTodos() {
+        return clienteRepository.findAll().stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ClienteDTO obtenerPorNif(String nif) {
+        Cliente c = clienteRepository.findById(nif)
+                .orElseThrow(() -> new RuntimeException("Consulta: Cliente no encontrado con NIF: " + nif));
+        return convertirADTO(c);
+    }
+
+    @Transactional
+    public void borrarFisico(String nif) {
+        if (!clienteRepository.existsById(nif)) {
+            throw new RuntimeException("Error: El cliente que intenta borrar no existe.");
+        }
+        clienteRepository.deleteById(nif);
+    }
+
+    private ClienteDTO convertirADTO(Cliente c) {
+        return new ClienteDTO(
+            c.getNifCif(), 
+            c.getNombre(), 
+            c.getEmail(), 
+            c.getFechaRegistro(),
+            c.getInformacionFiscal() != null ? c.getInformacionFiscal().getDireccionFiscal() : "N/A",
+            c.getInformacionFiscal() != null ? c.getInformacionFiscal().getTelefono() : "N/A"
+        );
+    }
+}

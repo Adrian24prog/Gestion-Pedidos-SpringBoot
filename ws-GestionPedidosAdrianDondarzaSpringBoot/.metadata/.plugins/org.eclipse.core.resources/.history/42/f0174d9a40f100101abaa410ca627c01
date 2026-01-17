@@ -1,0 +1,27 @@
+package com.adriandondarza.gestionpedidos.springboot.controller;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.service.InfoFiscalService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+
+@Controller
+public class InfoFiscalController {
+
+    @Autowired
+    private InfoFiscalService infoFiscalService;
+
+    /**
+     * Registra la información fiscal y, por cascada, el cliente asociado.
+     */
+    public InfoFiscalDTO registrarInfoFiscal(InfoFiscalDTO infoFiscalDTO) {
+        return infoFiscalService.registrarInfoFiscal(infoFiscalDTO);
+    }
+
+    /**
+     * Elimina la información fiscal y, por cascada, al cliente asociado.
+     */
+    public void eliminarInfoFiscal(String nif) {
+        infoFiscalService.eliminarInfoFiscal(nif);
+    }
+}

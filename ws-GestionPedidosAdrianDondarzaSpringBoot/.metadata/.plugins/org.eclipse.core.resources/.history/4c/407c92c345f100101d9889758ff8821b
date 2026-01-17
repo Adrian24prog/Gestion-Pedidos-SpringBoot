@@ -1,0 +1,119 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.ArticuloDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.Articulo;
+import com.adriandondarza.gestionpedidos.springboot.repository.ArticuloRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Servicio encargado de la gestión de la lógica de negocio para los artículos.
+ * <p>
+ * Proporciona métodos para la consulta, creación, actualización y desactivación 
+ * lógica de productos, asegurando la integridad de los datos mediante el uso 
+ * de transacciones y la conversión a objetos de transferencia (DTO).
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.0
+ * @since 2026-01-14
+ */
+@Service
+public class ArticuloService {
+
+    @Autowired
+    private ArticuloRepository articuloRepository;
+
+    /**
+     * Recupera el catálogo completo de artículos registrados en el sistema.
+     *
+     * @return {@link List} de {@link ArticuloDTO} con todos los artículos.
+     */
+    @Transactional(readOnly = true)
+    public List<ArticuloDTO> obtenerTodos() {
+        return articuloRepository.findAll().stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene únicamente los artículos que se encuentran disponibles para la venta.
+     * <p>
+     * Este método filtra los productos que no han sido marcados como inactivos.
+     * </p>
+     *
+     * @return {@link List} de {@link ArticuloDTO} en estado activo.
+     */
+    @Transactional(readOnly = true)
+    public List<ArticuloDTO> obtenerActivos() {
+        return articuloRepository.findByActivoTrue().stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Busca un artículo específico por su identificador único.
+     *
+     * @param id Identificador del artículo a buscar.
+     * @return {@link ArticuloDTO} representativo del producto encontrado.
+     * @throws RuntimeException Si el identificador no corresponde a ningún registro.
+     */
+    @Transactional(readOnly = true)
+    public ArticuloDTO obtenerPorId(Integer id) {
+        Articulo art = articuloRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
+        return convertirADTO(art);
+    }
+
+    /**
+     * Persiste un nuevo artículo o actualiza uno existente en la base de datos.
+     *
+     * @param dto Datos del artículo a guardar.
+     * @return {@link ArticuloDTO} con la información persistida y su ID generado.
+     */
+    @Transactional
+    public ArticuloDTO guardarArticulo(ArticuloDTO dto) {
+        Articulo art = new Articulo();
+        if (dto.getId() != null) art.setId(dto.getId());
+        art.setNombre(dto.getNombre());
+        art.setDescripcion(dto.getDescripcion());
+        art.setPrecioActual(dto.getPrecioActual());
+        art.setStock(dto.getStock());
+        art.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
+        
+        return convertirADTO(articuloRepository.save(art));
+    }
+
+    /**
+     * Realiza un borrado lógico del artículo, marcándolo como inactivo.
+     * <p>
+     * Este enfoque garantiza que los registros históricos de compras no pierdan 
+     * su integridad referencial al intentar consultar un artículo eliminado físicamente.
+     * </p>
+     *
+     * @param id Identificador del artículo a desactivar.
+     * @throws RuntimeException Si el artículo no existe en el sistema.
+     */
+    @Transactional
+    public void desactivarArticulo(Integer id) {
+        Articulo art = articuloRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No se puede desactivar: Artículo inexistente"));
+        art.setActivo(false);
+        articuloRepository.save(art);
+    }
+
+    /**
+     * Método privado de utilidad para mapear una entidad JPA a un objeto de transferencia.
+     *
+     * @param art Entidad {@link Articulo} de base de datos.
+     * @return {@link ArticuloDTO} para transporte de datos.
+     */
+    private ArticuloDTO convertirADTO(Articulo art) {
+        return new ArticuloDTO(art.getId(), art.getNombre(), art.getDescripcion(), 
+                               art.getPrecioActual(), art.getStock(), art.getActivo());
+    }
+}

@@ -1,0 +1,36 @@
+package com.adriandondarza.gestionpedidos.springboot.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+@Entity
+@Table(name = "informacion_fiscal")
+@Data
+@NoArgsConstructor
+public class InfoFiscal {
+
+    @Id
+    @Column(name = "nif_cif", length = 20)
+    private String nifCif;
+
+    @Column(name = "direccion_fiscal", nullable = false)
+    private String direccionFiscal;
+
+    @Column(nullable = false)
+    private String telefono;
+
+    // Relación OneToOne donde InfoFiscal es la dueña
+    // CascadeType.ALL es vital para que al guardar InfoFiscal se guarde el Cliente
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @PrimaryKeyJoinColumn // Indica que comparten la misma Primary Key
+    @ToString.Exclude
+    private Cliente cliente;
+
+    public InfoFiscal(String nifCif, String direccionFiscal, String telefono) {
+        this.nifCif = nifCif;
+        this.direccionFiscal = direccionFiscal;
+        this.telefono = telefono;
+    }
+}

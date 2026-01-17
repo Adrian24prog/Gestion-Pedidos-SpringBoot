@@ -1,0 +1,42 @@
+package com.adriandondarza.gestionpedidos.springboo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+/**
+ * Clase principal de configuración y arranque de la aplicación de Gestión de Pedidos.
+ * <p>
+ * La anotación {@link SpringBootApplication} activa la configuración automática, 
+ * el escaneo de componentes (Controllers, Services, Repositories) y permite 
+ * la definición de configuraciones adicionales en el contexto de Spring.
+ * </p>
+ * <p>
+ * Esta aplicación está diseñada para gestionar un sistema de ventas integrado con 
+ * una base de datos Oracle, permitiendo la administración de artículos, clientes 
+ * y el procesamiento de pedidos complejos.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.0
+ * @since 2026-01-14
+ */
+@SpringBootApplication(scanBasePackages = "com.adriandondarza.gestionpedidos.springboot")
+@EnableJpaRepositories(basePackages = "com.adriandondarza.gestionpedidos.springboot.repository")
+@EntityScan(basePackages = "com.adriandondarza.gestionpedidos.springboot.model")
+public class GestionPedidosApplication {
+
+    /**
+     * Punto de entrada principal (Main) que inicia la ejecución de la aplicación Java.
+     * <p>
+     * Delega la responsabilidad a {@link SpringApplication#run} para levantar el 
+     * contenedor de Inversión de Control (IoC) y el servidor web embebido (Tomcat).
+     * </p>
+     *
+     * @param args Argumentos de línea de comandos pasados durante el inicio.
+     */
+    public static void main(String[] args) {
+        SpringApplication.run(GestionPedidosApplication.class, args);
+    }
+}

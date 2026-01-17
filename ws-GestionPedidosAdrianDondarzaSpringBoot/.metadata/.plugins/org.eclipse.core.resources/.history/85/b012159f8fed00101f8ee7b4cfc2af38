@@ -1,0 +1,90 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+public class App {
+
+    private static final String NIF_TEST = "B12345678";
+
+    public static void main(String[] args) {
+        // 1. Iniciar contexto
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev")
+                .run(args);
+
+        System.out.println("\n>>> PROBANDO LÓGICA DE NEGOCIO (BACK + FRONT) <<<");
+
+        // 2. Obtener componentes
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        try {
+            // --- PASO 1: LIMPIEZA INICIAL ---
+            if (clienteRepo.existsById(NIF_TEST)) {
+                System.out.println("Limpiando rastro anterior...");
+                infoFiscalCtrl.eliminarInfoFiscal(NIF_TEST);
+            }
+
+            // --- PASO 2: CREACIÓN DUAL (InfoFiscal + Cliente) ---
+            System.out.println("\n[CREACIÓN] Registrando InfoFiscal y Cliente...");
+            InfoFiscalDTO registro = new InfoFiscalDTO();
+            registro.setNifCif(NIF_TEST);
+            registro.setNombreCliente("Adrian Dondarza");
+            registro.setDireccionFiscal("Calle Nueva 1");
+            registro.setTelefono("666555444");
+
+            // Esta llamada guarda en las dos tablas de Oracle
+            infoFiscalCtrl.registrarInfoFiscal(registro);
+            System.out.println("- Registro completado.");
+
+            // --- PASO 3: CREAR ARTICULO Y COMPRA ---
+            Articulo art = new Articulo();
+            art.setNombre("Ratón Gaming");
+            art.setPrecioActual(new BigDecimal("45.50"));
+            art.setStock(50);
+            art.setActivo(true);
+            art = articuloRepo.save(art);
+
+            Cliente cliente = clienteRepo.findById(NIF_TEST).get();
+
+            Compra compra = new Compra();
+            compra.setCliente(cliente);
+            compra.setFechaRealizada(LocalDateTime.now());
+            compra.setEstado(EstadoCompra.PENDIENTE);
+            compra.setPrecioTotal(art.getPrecioActual());
+            compra = compraRepo.save(compra);
+
+            ArticuloCompra detalle = new ArticuloCompra();
+            detalle.setCompra(compra);
+            detalle.setArticulo(art);
+            detalle.setUnidades(1);
+            detalle.setPrecioCompra(art.getPrecioActual());
+            lineaRepo.save(detalle);
+            System.out.println("- Compra registrada con éxito.");
+
+            // --- PASO 4: PRUEBA DE CASCADA ---
+            System.out.println("\n[CASCADA] Borrando InfoFiscal para eliminar todo...");
+            infoFiscalCtrl.eliminarInfoFiscal(NIF_TEST);
+
+            if (!clienteRepo.existsById(NIF_TEST)) {
+                System.out.println(">>> ÉXITO: El cliente y su info fiscal han desaparecido de Oracle.");
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error en la ejecución: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

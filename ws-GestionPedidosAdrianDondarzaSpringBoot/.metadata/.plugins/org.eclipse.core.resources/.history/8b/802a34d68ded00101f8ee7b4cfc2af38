@@ -1,0 +1,8 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+import com.adriandondarza.gestionpedidos.springboot.model.InfoFiscal;
+
+public interface InfoFiscalService {
+    InfoFiscal crearConCliente(InfoFiscal infoFiscal);
+    void eliminar(String nifCif);
+}

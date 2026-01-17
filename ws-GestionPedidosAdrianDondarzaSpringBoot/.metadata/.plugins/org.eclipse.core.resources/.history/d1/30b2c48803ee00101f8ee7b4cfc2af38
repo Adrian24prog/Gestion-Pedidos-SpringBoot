@@ -1,0 +1,43 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+public class App {
+
+    public static void main(String[] args) {
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev").run(args);
+
+        InfoFiscalController controller = context.getBean(InfoFiscalController.class);
+
+        // Usaremos el mismo NIF para forzar el error
+        String nifRepetido = "12345678Z";
+
+        try {
+            System.out.println("\n[1] Intentando el primer registro...");
+            InfoFiscalDTO dto1 = new InfoFiscalDTO(nifRepetido, "Calle Principal 1", "900111222", "Cliente Original");
+            controller.registrarInfoFiscal(dto1);
+            System.out.println(">>> Primer registro guardado correctamente.");
+
+            System.out.println("\n[2] Intentando registrar el MISMO NIF (debería saltar la excepción)...");
+            InfoFiscalDTO dto2 = new InfoFiscalDTO(nifRepetido, "Otra Calle 2", "900333444", "Cliente Duplicado");
+            
+            // Esto llamará al service, que ejecutará: if(repository.existsById...) throw RuntimeException
+            controller.registrarInfoFiscal(dto2);
+
+        } catch (RuntimeException e) {
+            System.err.println("\n[CAPTURA DE EXCEPCIÓN CONTROLADA]");
+            System.err.println("Mensaje: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("\n[ERROR NO ESPERADO]: " + e.getClass().getSimpleName());
+        }
+
+        System.out.println("\n-------------------------------------------------");
+        System.out.println(">>> PRUEBA DE VALIDACIÓN FINALIZADA <<<");
+        System.out.println("-------------------------------------------------");
+    }
+}

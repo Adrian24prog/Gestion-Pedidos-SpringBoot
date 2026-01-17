@@ -1,0 +1,45 @@
+package com.adriandondarza.gestionpedidos.springboot.repository;
+
+import com.adriandondarza.gestionpedidos.springboot.model.Articulo;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+
+/**
+ * Repositorio encargado de gestionar la persistencia de la entidad {@link Articulo}.
+ * <p>
+ * Además de las operaciones CRUD estándar, proporciona métodos de consulta personalizados 
+ * para soportar las funcionalidades de filtrado y búsqueda requeridas por la interfaz 
+ * de usuario.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.0
+ * @since 2026-01-14
+ */
+@Repository
+public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
+    
+    /**
+     * Recupera todos los artículos que se encuentran en estado activo.
+     * <p>
+     * Este método es fundamental para la aplicación de escritorio, ya que permite 
+     * listar únicamente los productos disponibles para la venta.
+     * </p>
+     *
+     * @return {@link List} de {@link Articulo} cuyo campo 'activo' es verdadero.
+     */
+    List<Articulo> findByActivoTrue();
+    
+    /**
+     * Realiza una búsqueda de artículos cuyo nombre contenga una cadena específica, 
+     * ignorando las diferencias entre mayúsculas y minúsculas.
+     * <p>
+     * Ideal para implementar barras de búsqueda dinámicas en la UI.
+     * </p>
+     *
+     * @param nombre Cadena de texto a buscar dentro del nombre del artículo.
+     * @return {@link List} de {@link Articulo} que coinciden con el criterio de búsqueda.
+     */
+    List<Articulo> findByNombreContainingIgnoreCase(String nombre);
+}

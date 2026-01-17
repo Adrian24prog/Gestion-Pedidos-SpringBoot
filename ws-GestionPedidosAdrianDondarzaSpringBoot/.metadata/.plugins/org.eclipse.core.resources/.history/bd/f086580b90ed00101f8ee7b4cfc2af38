@@ -1,0 +1,112 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+public class App {
+
+    private static final String NIF_TEST = "B12345678";
+
+    public static void main(String[] args) {
+        // 1. Iniciar contexto de Spring Boot
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev")
+                .run(args);
+
+        System.out.println("\n>>> PROBANDO LÓGICA DE NEGOCIO (DATOS PERSISTIDOS) <<<");
+
+        // 2. Obtener Controladores y Repositorios
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        try {
+            // --- PASO 1: LIMPIEZA INICIAL ---
+            // Solo borramos lo anterior para que no de error de "Clave duplicada" al re-ejecutar
+            if (clienteRepo.existsById(NIF_TEST)) {
+                System.out.println("Limpiando datos de ejecuciones previas para evitar duplicados...");
+                infoFiscalCtrl.eliminarInfoFiscal(NIF_TEST);
+            }
+
+            // --- PASO 2: CREACIÓN DUAL (InfoFiscal + Cliente) ---
+            System.out.println("\n[CREACIÓN] Registrando InfoFiscal y Cliente mediante Cascada...");
+            InfoFiscalDTO registro = new InfoFiscalDTO();
+            registro.setNifCif(NIF_TEST);
+            registro.setNombreCliente("Adrian Dondarza");
+            registro.setDireccionFiscal("Calle Nueva 1, Ciudad Real");
+            registro.setTelefono("666555444");
+            
+            // Persistimos Padre e Hijo
+            infoFiscalCtrl.registrarInfoFiscal(registro);
+            System.out.println("- Registro de Cliente e InfoFiscal completado.");
+
+            // --- PASO 3: CREAR ARTICULO ---
+            System.out.println("\n[CREACIÓN] Registrando Artículo...");
+            Articulo art = new Articulo();
+            art.setNombre("Ratón Gaming Pro");
+            art.setDescripcion("Ratón óptico de alta precisión 16000 DPI con luces RGB"); 
+            art.setPrecioActual(new BigDecimal("45.50"));
+            art.setStock(50);
+            art.setActivo(true);
+            
+            art = articuloRepo.save(art);
+            System.out.println("- Artículo guardado con ID: " + art.getId());
+
+            // --- PASO 4: REALIZAR COMPRA ---
+            System.out.println("\n[OPERACIÓN] Generando Compra...");
+            Cliente cliente = clienteRepo.findById(NIF_TEST).get();
+
+            Compra compra = new Compra();
+            compra.setCliente(cliente);
+            compra.setFechaRealizada(LocalDateTime.now());
+            compra.setEstado(EstadoCompra.PENDIENTE);
+            compra.setPrecioTotal(art.getPrecioActual());
+            compra = compraRepo.save(compra);
+
+            ArticuloCompra detalle = new ArticuloCompra();
+            detalle.setCompra(compra);
+            detalle.setArticulo(art);
+            detalle.setUnidades(1);
+            detalle.setPrecioCompra(art.getPrecioActual());
+            lineaRepo.save(detalle);
+            System.out.println("- Compra y detalle registrados correctamente.");
+
+            // --- PASO 5: LISTADO DE VERIFICACIÓN ---
+            System.out.println("\n[READ] Listado actual en la base de datos:");
+            List<Cliente> todos = clienteRepo.findAll();
+            for (Cliente c : todos) {
+                System.out.println("  > " + c.getNombre() + " (" + c.getNifCif() + ") - Email: " + c.getEmail());
+            }
+
+            // --- PASO 6: PRUEBA DE CASCADA (BORRADO COMENTADO) ---
+            System.out.println("\n[CASCADA] El borrado automático ha sido DESACTIVADO.");
+            System.out.println("Ahora puedes ir a DBeaver y comprobar los datos insertados.");
+            
+            /* * COMENTADO PARA VER LOS DATOS EN LA BASE DE DATOS:
+             * * infoFiscalCtrl.eliminarInfoFiscal(NIF_TEST); 
+             * * if (!clienteRepo.existsById(NIF_TEST)) {
+             * System.out.println(">>> ÉXITO: Los datos se habrían eliminado.");
+             * }
+             */
+
+            System.out.println("\n-------------------------------------------------");
+            System.out.println(">>> DATOS DISPONIBLES EN ORACLE <<<");
+            System.out.println("-------------------------------------------------");
+
+        } catch (Exception e) {
+            System.err.println("\n>>> ERROR EN LA EJECUCIÓN: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

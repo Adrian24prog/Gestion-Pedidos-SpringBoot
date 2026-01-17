@@ -1,0 +1,5 @@
+package com.adriandondarza.gestionpedidos.springboot.dto;
+
+public class InfoFiscalDTO {
+
+}

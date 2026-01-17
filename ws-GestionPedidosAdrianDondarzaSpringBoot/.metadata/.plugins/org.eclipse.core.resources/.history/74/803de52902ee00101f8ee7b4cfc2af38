@@ -1,0 +1,41 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.Cliente;
+import com.adriandondarza.gestionpedidos.springboot.model.InfoFiscal;
+import com.adriandondarza.gestionpedidos.springboot.repository.InfoFiscalRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
+
+@Service
+public class InfoFiscalService {
+
+    @Autowired
+    private InfoFiscalRepository infoFiscalRepository;
+
+    @Transactional
+    public InfoFiscalDTO registrarInfoFiscal(InfoFiscalDTO dto) {
+        InfoFiscal info = new InfoFiscal(dto.getNifCif(), dto.getDireccionFiscal(), dto.getTelefono());
+        
+        Cliente cliente = new Cliente();
+        cliente.setNombre(dto.getNombreCliente());
+        cliente.setEmail(dto.getNifCif().toLowerCase() + "@mail.com");
+        cliente.setFechaRegistro(LocalDate.now());
+
+        // Vincular ambos
+        info.setCliente(cliente);
+        cliente.setInformacionFiscal(info);
+
+        // Guardar el padre (que arrastra al hijo)
+        infoFiscalRepository.saveAndFlush(info);
+
+        return dto;
+    }
+
+    @Transactional
+    public void eliminarInfoFiscal(String nif) {
+        infoFiscalRepository.deleteById(nif);
+    }
+}

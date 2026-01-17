@@ -1,0 +1,114 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboo.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.dto.ArticuloDTO;
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import com.adriandondarza.gestionpedidos.springboot.service.ArticuloService;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+/**
+ * Clase de ejecución y prueba funcional del sistema de Gestión de Pedidos.
+ * <p>
+ * Simula un flujo completo de negocio: registro de cliente, validación de catálogo
+ * y procesamiento de pedidos, utilizando la capa de servicios para garantizar
+ * que no existan duplicados ni errores de integridad.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.2
+ * @since 2026-01-14
+ */
+public class App {
+
+    public static void main(String[] args) {
+        // 1. Inicialización del contexto de Spring Boot
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev").run(args);
+
+        // 2. Obtención de controladores y servicios (Capa de Lógica)
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ArticuloService articuloService = context.getBean(ArticuloService.class);
+        
+        // Repositorios necesarios para la gestión directa de la compra en este Test
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        // NIF de prueba fijo para validar la persistencia
+        String nifSesion = "05478745B";
+
+        System.out.println("\n>>> INICIANDO FLUJO DE DATOS SEGURO EN ORACLE <<<");
+
+        try {
+            // --- FASE 1: REGISTRO DE CLIENTE (CON VALIDACIÓN JAVA) ---
+            System.out.println("[INFO] Intentando registrar Cliente con NIF: " + nifSesion);
+            InfoFiscalDTO registro = new InfoFiscalDTO(nifSesion, "Polígono Industrial Norte", "925112233", "Adrian Dondarza SL");
+            infoFiscalCtrl.registrarInfoFiscal(registro);
+            System.out.println("[OK] Cliente e InfoFiscal guardados correctamente.");
+
+            // --- FASE 2: GESTIÓN DE CATÁLOGO (EVITANDO DUPLICADOS) ---
+            System.out.println("[INFO] Añadiendo producto al catálogo mediante Service...");
+            
+            // Usamos DTO para que el Service pueda validar el nombre antes de guardar
+            ArticuloDTO dtoArt = new ArticuloDTO();
+            dtoArt.setNombre("Tarjeta Gráfica RTX 4080");
+            dtoArt.setDescripcion("Componente de alto rendimiento para gaming");
+            dtoArt.setPrecioActual(new BigDecimal("1200.00"));
+            dtoArt.setStock(15);
+            dtoArt.setActivo(true);
+
+            // El Service lanzará RuntimeException si el nombre ya existe en Oracle
+            ArticuloDTO artGuardado = articuloService.guardarArticulo(dtoArt);
+            System.out.println("[OK] Artículo registrado con ID: " + artGuardado.getId());
+
+            // --- FASE 3: PROCESAMIENTO DE COMPRA ---
+            System.out.println("[INFO] Generando pedido de 3 unidades...");
+            
+            Cliente cliente = clienteRepo.findById(nifSesion)
+                    .orElseThrow(() -> new RuntimeException("Error: Cliente no encontrado"));
+            
+            // Recuperamos la entidad real para la compra
+            Articulo articuloEntidad = articuloRepo.findById(artGuardado.getId()).get();
+            
+            BigDecimal totalPedido = articuloEntidad.getPrecioActual().multiply(new BigDecimal(3));
+
+            Compra compra = new Compra();
+            compra.setCliente(cliente);
+            compra.setFechaRealizada(LocalDateTime.now());
+            compra.setEstado(EstadoCompra.PENDIENTE);
+            compra.setPrecioTotal(totalPedido);
+            compra = compraRepo.save(compra);
+
+            ArticuloCompra detalle = new ArticuloCompra();
+            detalle.setCompra(compra);
+            detalle.setArticulo(articuloEntidad);
+            detalle.setUnidades(3);
+            detalle.setPrecioCompra(articuloEntidad.getPrecioActual());
+            lineaRepo.save(detalle);
+            
+            System.out.println("[OK] Compra registrada. Total: " + totalPedido + "€");
+
+            // --- SECCIÓN DE ELIMINACIÓN (COMENTADA) ---
+            /*
+            System.out.println("\n[INFO] Ejecutando limpieza de datos fiscales...");
+            infoFiscalCtrl.eliminarInfoFiscal(nifSesion);
+            */
+
+            System.out.println("\n>>> PROCESO COMPLETADO CON ÉXITO <<<");
+
+        } catch (Exception e) {
+            // Aquí capturaremos los mensajes de "El artículo ya existe" o "NIF duplicado"
+            System.err.println("\n[VALIDACIÓN] " + e.getMessage());
+        } finally {
+            context.close();
+        }
+    }
+}

@@ -1,0 +1,52 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.Cliente;
+import com.adriandondarza.gestionpedidos.springboot.model.InfoFiscal;
+import com.adriandondarza.gestionpedidos.springboot.repository.InfoFiscalRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
+
+@Service
+public class InfoFiscalService {
+
+    @Autowired
+    private InfoFiscalRepository infoFiscalRepository;
+
+    @Transactional
+    public InfoFiscalDTO registrarInfoFiscal(InfoFiscalDTO dto) {
+        // 1. Crear el Padre
+        InfoFiscal info = new InfoFiscal(dto.getNifCif(), dto.getDireccionFiscal(), dto.getTelefono());
+        
+        // 2. Crear el Hijo
+        Cliente cliente = new Cliente();
+        cliente.setNifCif(dto.getNifCif()); // Deben tener el mismo ID
+        cliente.setNombre(dto.getNombreCliente());
+        cliente.setEmail(dto.getNifCif().toLowerCase() + "@mail.com");
+        cliente.setFechaRegistro(LocalDate.now());
+
+        // 3. Vincular (Bidireccionalidad)
+        info.setCliente(cliente);
+        cliente.setInformacionFiscal(info);
+
+        // 4. PERSISTIR EL PADRE
+        // Al guardar 'info', JPA debería insertar primero en informacion_fiscal 
+        // y luego en clientes gracias al orden de la relación.
+        InfoFiscal guardado = infoFiscalRepository.save(info);
+
+        return new InfoFiscalDTO(
+            guardado.getNifCif(), 
+            guardado.getDireccionFiscal(), 
+            guardado.getTelefono(),
+            guardado.getCliente().getNombre()
+        );
+    
+    }
+
+    @Transactional
+    public void eliminarInfoFiscal(String nif) {
+        infoFiscalRepository.deleteById(nif);
+    }
+}

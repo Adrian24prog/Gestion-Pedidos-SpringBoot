@@ -1,0 +1,35 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+/**
+ * Front test runner that tries to invoke the backend application's main method.
+ */
+public class App {
+    public static void main(String[] args) {
+        System.out.println("[front] Starting front App - will try to invoke backend main...");
+
+        // Backend main class we expect to exist (from the backend project)
+        String backendMain = "com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication";
+
+        // Print classpath to help debugging when the backend class isn't found
+        System.out.println("[front] java.class.path = " + System.getProperty("java.class.path"));
+
+        try {
+            Class<?> cls = Class.forName(backendMain);
+            java.lang.reflect.Method mainMethod = cls.getMethod("main", String[].class);
+            System.out.println("[front] Found backend main class: " + cls.getName() + ", invoking main(...)...");
+            // Invoke backend main
+            mainMethod.invoke(null, (Object) args);
+            System.out.println("[front] Invocation of backend main returned normally.");
+        } catch (ClassNotFoundException e) {
+            System.err.println("[front][ERROR] Backend class not found on classpath: " + backendMain);
+            System.err.println("[front][HINT] Make sure the backend jar is added to the front project's classpath or declared as a Maven dependency in the front's pom.xml.");
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            System.err.println("[front][ERROR] Backend class found but no main(String[]) method exists: " + backendMain);
+            e.printStackTrace();
+        } catch (IllegalAccessException | java.lang.reflect.InvocationTargetException e) {
+            System.err.println("[front][ERROR] Failed to invoke backend main: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

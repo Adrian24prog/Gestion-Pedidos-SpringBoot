@@ -1,0 +1,100 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboo.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.controller.ArticuloController;
+import com.adriandondarza.gestionpedidos.springboot.controller.CompraController;
+import com.adriandondarza.gestionpedidos.springboot.dto.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Aplicación de escritorio (Client Side) que consume la librería de Gestión de Pedidos.
+ * <p>
+ * Implementa el flujo completo de negocio accediendo exclusivamente a través de 
+ * Controllers y DTOs para cumplir con las restricciones de diseño de la librería.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.5
+ */
+public class App {
+
+    public static void main(String[] args) {
+        // 1. Inicialización del contexto de Spring Boot (Carga de la librería)
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev").run(args);
+
+        // 2. OBTENCIÓN DE BEANS (Únicamente Controllers permitidos según enunciado)
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ArticuloController articuloCtrl = context.getBean(ArticuloController.class);
+        CompraController compraCtrl = context.getBean(CompraController.class);
+
+        // Datos de prueba únicos para esta ejecución
+        String nifSesion = "54321678K";
+        String telefonoUnico = "655443322";
+
+        System.out.println("\n>>> INICIANDO SISTEMA DE GESTIÓN (MODO LIBRERÍA) <<<");
+
+        try {
+            // --- FASE 1: REGISTRO DE CLIENTE ---
+            System.out.println("[INFO] Registrando información fiscal y cliente...");
+            InfoFiscalDTO registroDto = new InfoFiscalDTO(nifSesion, "Calle Innovación 12, Planta 4", telefonoUnico, "Adrian Tech Solutions");
+            infoFiscalCtrl.registrarInfoFiscal(registroDto);
+            System.out.println("[OK] Cliente registrado correctamente en Oracle.");
+
+            // --- FASE 2: GESTIÓN DE ARTÍCULOS ---
+            System.out.println("[INFO] Insertando nuevo artículo en el catálogo...");
+            ArticuloDTO nuevoArt = new ArticuloDTO(null, "Monitor Gaming 144Hz", "Panel IPS 27 pulgadas", 
+                                                 new BigDecimal("299.99"), 50, true);
+            
+            ArticuloDTO artGuardado = articuloCtrl.crearArticulo(nuevoArt);
+            System.out.println("[OK] Artículo '" + artGuardado.getNombre() + "' creado con ID: " + artGuardado.getId());
+
+            // --- FASE 3: PROCESAMIENTO DE COMPRA ---
+            System.out.println("[INFO] Iniciando proceso de compra...");
+            
+            List<LineaCompraDTO> lineas = new ArrayList<>();
+            // El DTO usa el constructor (Integer, int) que añadimos para facilitar el uso desde el Front
+            lineas.add(new LineaCompraDTO(artGuardado.getId(), 5)); 
+
+            CompraRegistroDTO pedido = new CompraRegistroDTO();
+            pedido.setClienteNif(nifSesion);
+            pedido.setDireccionEnvio("Oficina Central - Depto. IT");
+            pedido.setLineas(lineas);
+
+            CompraRespuestaDTO respuesta = compraCtrl.procesarPedido(pedido);
+            
+            System.out.println("[OK] Pedido procesado con éxito.");
+            System.out.println("     Total Facturado: " + respuesta.getPrecioTotal() + "€");
+            System.out.println("     Estado: " + respuesta.getEstado());
+
+            // --- FASE 4: FUNCIONALIDADES DE BORRADO (COMENTADAS POR REQUISITO) ---
+            
+            /* // 4.1. Borrado Lógico de Artículos (Compatible con el Trigger de Oracle)
+            System.out.println("[INFO] Realizando borrado lógico del artículo...");
+            articuloCtrl.eliminarLogico(artGuardado.getId());
+            System.out.println("[OK] Artículo desactivado (Borrado lógico)");
+            */
+
+            /* // 4.2. Borrado de Información Fiscal
+            System.out.println("[INFO] Eliminando registro fiscal del cliente...");
+            infoFiscalCtrl.eliminarInfoFiscal(nifSesion);
+            System.out.println("[OK] Datos fiscales eliminados.");
+            */
+
+            System.out.println("\n>>> TODO EL FLUJO SE HA EJECUTADO CORRECTAMENTE <<<");
+
+        } catch (Exception e) {
+            // Captura de errores de validación (NIF incorrecto, Teléfono duplicado, etc.)
+            System.err.println("\n[ERROR DE NEGOCIO] " + e.getMessage());
+        } finally {
+            // Cierre preventivo del contexto de la librería
+            context.close();
+        }
+    }
+}

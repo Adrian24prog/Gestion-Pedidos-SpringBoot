@@ -1,0 +1,97 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+public class App {
+
+    // Datos de prueba para crear nuevos registros cada vez
+    private static final String NIF_NUEVO = "B" + (int)(Math.random() * 1000000);
+    private static final String NOMBRE_NUEVO = "Cliente Nuevo " + NIF_NUEVO;
+
+    public static void main(String[] args) {
+        // 1. Iniciar contexto de Spring Boot
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev")
+                .run(args);
+
+        System.out.println("\n>>> INICIANDO CREACIÓN DE NUEVA INFORMACIÓN FISCAL Y PEDIDO <<<");
+
+        // 2. Obtener componentes
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        try {
+            // --- PASO 1: CREACIÓN DE INFO FISCAL Y CLIENTE (Dual) ---
+            System.out.println("\n[1/3] Registrando InfoFiscal y Cliente...");
+            InfoFiscalDTO registroDto = new InfoFiscalDTO();
+            registroDto.setNifCif(NIF_NUEVO);
+            registroDto.setNombreCliente(NOMBRE_NUEVO);
+            registroDto.setDireccionFiscal("Polígono Industrial s/n, Parcela " + (int)(Math.random() * 100));
+            registroDto.setTelefono("926" + (int)(Math.random() * 1000000));
+            
+            // El Controller llama al Service que crea AMBOS registros
+            infoFiscalCtrl.registrarInfoFiscal(registroDto);
+            System.out.println("- InfoFiscal y Cliente creados con NIF: " + NIF_NUEVO);
+
+            // --- PASO 2: CREACIÓN DE ARTÍCULO NUEVO ---
+            System.out.println("\n[2/3] Registrando nuevo Artículo en el catálogo...");
+            Articulo nuevoArt = new Articulo();
+            nuevoArt.setNombre("Artículo " + (int)(Math.random() * 9999));
+            nuevoArt.setDescripcion("Descripción técnica del artículo recién creado."); 
+            nuevoArt.setPrecioActual(new BigDecimal("99.95"));
+            nuevoArt.setStock(100);
+            nuevoArt.setActivo(true);
+            
+            nuevoArt = articuloRepo.save(nuevoArt);
+            System.out.println("- Artículo guardado con ID: " + nuevoArt.getId());
+
+            // --- PASO 3: CREACIÓN DE COMPRA VINCULADA ---
+            System.out.println("\n[3/3] Generando Compra para el nuevo cliente...");
+            // Recuperamos el cliente que acabamos de crear
+            Cliente clienteCreado = clienteRepo.findById(NIF_NUEVO).get();
+
+            Compra nuevaCompra = new Compra();
+            nuevaCompra.setCliente(clienteCreado);
+            nuevaCompra.setFechaRealizada(LocalDateTime.now());
+            nuevaCompra.setEstado(EstadoCompra.PENDIENTE);
+            nuevaCompra.setPrecioTotal(nuevoArt.getPrecioActual());
+            nuevaCompra = compraRepo.save(nuevaCompra);
+
+            // Detalle de la línea de compra (Unión)
+            ArticuloCompra detalle = new ArticuloCompra();
+            detalle.setCompra(nuevaCompra);
+            detalle.setArticulo(nuevoArt);
+            detalle.setUnidades(1);
+            detalle.setPrecioCompra(nuevoArt.getPrecioActual());
+            lineaRepo.save(detalle);
+
+            System.out.println("- Compra registrada con éxito (ID Compra: " + nuevaCompra.getId() + ")");
+
+            // --- VERIFICACIÓN FINAL ---
+            System.out.println("\n-------------------------------------------------");
+            System.out.println(">>> PROCESO FINALIZADO: DATOS GUARDADOS EN ORACLE <<<");
+            System.out.println("NIF: " + NIF_NUEVO);
+            System.out.println("Nombre: " + NOMBRE_NUEVO);
+            System.out.println("-------------------------------------------------");
+            System.out.println("(!) No se ha ejecutado ningún borrado.");
+            System.out.println("Comprueba las tablas CLIENTES, INFORMACION_FISCAL y COMPRAS.");
+
+        } catch (Exception e) {
+            System.err.println("\n>>> ERROR CRÍTICO EN LA CREACIÓN: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

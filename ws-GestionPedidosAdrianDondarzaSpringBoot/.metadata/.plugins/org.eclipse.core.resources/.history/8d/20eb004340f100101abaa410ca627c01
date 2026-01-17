@@ -1,0 +1,10 @@
+package com.adriandondarza.gestionpedidos.springboot;
+
+
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class GestionPedidosApplication {
+
+     
+}

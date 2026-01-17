@@ -1,0 +1,46 @@
+package com.adriandondarza.gestionpedidos.springboot.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
+
+/**
+ * Objeto de Transferencia de Datos (DTO) para las líneas de detalle de una compra.
+ * <p>
+ * Esta clase representa cada uno de los elementos individuales que componen un pedido.
+ * Almacena la relación entre el artículo solicitado y la cantidad, incluyendo el 
+ * precio pactado en el momento de la transacción para garantizar la integridad histórica.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.0
+ * @since 2026-01-14
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class LineaCompraDTO {
+
+    /**
+     * Identificador único del artículo asociado a esta línea de pedido.
+     */
+    private Integer articuloId;
+
+    /**
+     * Nombre descriptivo del artículo para facilitar su visualización en el resumen de compra.
+     */
+    private String articuloNombre;
+
+    /**
+     * Número de unidades solicitadas del artículo en esta línea específica.
+     */
+    private Integer cantidad;
+
+    /**
+     * Precio unitario aplicado en el momento de realizar la compra.
+     * Este valor se "congela" para que futuras variaciones en el catálogo no afecten 
+     * al registro histórico del pedido.
+     */
+    private BigDecimal precioAplicado; 
+}

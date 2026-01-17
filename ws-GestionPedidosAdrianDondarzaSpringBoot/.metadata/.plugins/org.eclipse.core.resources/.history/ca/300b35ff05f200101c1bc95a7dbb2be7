@@ -1,0 +1,86 @@
+package com.adriandondarza.gestionpedidos.springboot.controller;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.ArticuloDTO;
+import com.adriandondarza.gestionpedidos.springboot.service.ArticuloService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+
+import java.util.List;
+
+/**
+ * Controlador para la gestión de artículos en el sistema.
+ * <p>
+ * Esta clase actúa como intermediario entre la vista y la capa de servicio para
+ * realizar operaciones CRUD y consultas específicas sobre el catálogo de productos.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.1
+ * @since 2026-01-14
+ */
+@Controller
+public class ArticuloController {
+
+    @Autowired
+    private ArticuloService articuloService;
+
+    /**
+     * Procesa la creación de un nuevo artículo en el catálogo.
+     * <p>
+     * Este método es el que espera la aplicación de escritorio para registrar productos.
+     * </p>
+     *
+     * @param articuloDTO Objeto de transferencia de datos con la información del artículo.
+     * @return {@link ArticuloDTO} que representa el artículo tras ser persistido.
+     */
+    public ArticuloDTO crearArticulo(ArticuloDTO articuloDTO) {
+        return articuloService.guardarArticulo(articuloDTO);
+    }
+
+    /**
+     * Recupera una lista completa de todos los artículos registrados.
+     *
+     * @return {@link List} de {@link ArticuloDTO} con todos los artículos.
+     */
+    public List<ArticuloDTO> listarTodos() {
+        return articuloService.obtenerTodos();
+    }
+
+    /**
+     * Recupera la lista de artículos que se encuentran actualmente en estado activo.
+     *
+     * @return {@link List} de {@link ArticuloDTO} que contiene solo artículos activos.
+     */
+    public List<ArticuloDTO> listarActivos() {
+        return articuloService.obtenerActivos();
+    }
+
+    /**
+     * Busca y devuelve la información de un artículo específico basado en su identificador único.
+     *
+     * @param id Identificador numérico del artículo.
+     * @return {@link ArticuloDTO} con los datos del artículo encontrado.
+     */
+    public ArticuloDTO obtenerPorId(Integer id) {
+        return articuloService.obtenerPorId(id);
+    }
+
+    /**
+     * Actualiza un artículo existente en la base de datos.
+     *
+     * @param articuloDTO Objeto con los datos actualizados.
+     * @return {@link ArticuloDTO} persistido.
+     */
+    public ArticuloDTO guardar(ArticuloDTO articuloDTO) {
+        return articuloService.guardarArticulo(articuloDTO);
+    }
+
+    /**
+     * Realiza un borrado lógico de un artículo (desactivación).
+     *
+     * @param id Identificador numérico del artículo a desactivar.
+     */
+    public void eliminarLogico(Integer id) {
+        articuloService.desactivarArticulo(id);
+    }
+}

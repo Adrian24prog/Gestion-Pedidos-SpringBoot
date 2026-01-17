@@ -1,0 +1,80 @@
+package com.adriandondarza.gestionpedidos.springboot.controller;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.CompraRegistroDTO;
+import com.adriandondarza.gestionpedidos.springboot.dto.CompraRespuestaDTO;
+import com.adriandondarza.gestionpedidos.springboot.service.CompraService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+
+import java.util.List;
+
+/**
+ * Controlador encargado de la gestión y procesamiento de órdenes de compra.
+ * <p>
+ * Actúa como el punto de entrada para la creación de nuevos pedidos, 
+ * la consulta de históricos de transacciones y el mantenimiento de los estados de compra.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.0
+ * @since 2026-01-14
+ */
+@Controller
+public class CompraController {
+
+    @Autowired
+    private CompraService compraService;
+
+    /**
+     * Procesa la creación de un nuevo pedido en el sistema.
+     * <p>
+     * Coordina la validación de stock, la vinculación con el cliente y la 
+     * generación de las líneas de detalle correspondientes.
+     * </p>
+     *
+     * @param peticion Objeto {@link CompraRegistroDTO} con la información del pedido y sus artículos.
+     * @return {@link CompraRespuestaDTO} con el resumen del pedido procesado y su ID generado.
+     * @throws RuntimeException si ocurre un error durante el procesamiento (ej. falta de stock).
+     */
+    public CompraRespuestaDTO realizarPedido(CompraRegistroDTO peticion) {
+        try {
+            return compraService.procesarCompra(peticion);
+        } catch (RuntimeException e) {
+            // Se relanza la excepción para que sea gestionada por la capa superior (Front/App)
+            throw e;
+        }
+    }
+
+    /**
+     * Recupera el histórico de compras realizadas por un cliente específico.
+     *
+     * @param nif El Número de Identificación Fiscal del cliente.
+     * @return {@link List} de {@link CompraRespuestaDTO} vinculadas al cliente proporcionado.
+     */
+    public List<CompraRespuestaDTO> historialPorCliente(String nif) {
+        return compraService.obtenerComprasPorCliente(nif);
+    }
+
+    /**
+     * Obtiene una lista global de todas las compras registradas en el sistema.
+     * <p>
+     * Útil para perfiles de administración y control de ventas global.
+     * </p>
+     *
+     * @return {@link List} de {@link CompraRespuestaDTO} con todas las transacciones.
+     */
+    public List<CompraRespuestaDTO> listarTodasLasCompras() {
+        return compraService.obtenerTodas();
+    }
+
+    /**
+     * Actualiza el estado logístico de una compra específica (ej. de PENDIENTE a ENVIADO).
+     *
+     * @param compraId Identificador único de la compra.
+     * @param nuevoEstado Nueva cadena de texto que representa el estado (coincidente con el Enum de estado).
+     * @return {@link CompraRespuestaDTO} con los datos actualizados de la compra.
+     */
+    public CompraRespuestaDTO actualizarEstado(Integer compraId, String nuevoEstado) {
+        return compraService.cambiarEstado(compraId, nuevoEstado);
+    }
+}

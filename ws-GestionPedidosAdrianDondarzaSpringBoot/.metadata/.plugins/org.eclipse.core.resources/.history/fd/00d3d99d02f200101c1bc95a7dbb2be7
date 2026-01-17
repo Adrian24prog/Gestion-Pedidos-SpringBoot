@@ -1,0 +1,91 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboo.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.controller.ArticuloController;
+import com.adriandondarza.gestionpedidos.springboot.controller.CompraController;
+import com.adriandondarza.gestionpedidos.springboot.dto.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Aplicación de escritorio (Client Side) que consume la librería de Gestión de Pedidos.
+ * <p>
+ * Siguiendo las restricciones del enunciado, esta clase SOLO accede a la capa 
+ * de Controllers y DTOs, respetando el encapsulamiento de la lógica de negocio 
+ * y la persistencia de la librería.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.4
+ */
+public class App {
+
+    public static void main(String[] args) {
+        // 1. Inicialización del contexto de Spring Boot (Carga de la librería)
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev").run(args);
+
+        // 2. OBTENCIÓN DE BEANS (Únicamente Controllers permitidos)
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ArticuloController articuloCtrl = context.getBean(ArticuloController.class);
+        CompraController compraCtrl = context.getBean(CompraController.class);
+
+        // Nuevos datos de prueba para evitar duplicados
+        String nifSesion = "12345678Z";
+
+        System.out.println("\n>>> ACCESO A LIBRERÍA: FLUJO DE CONTROLADORES <<<");
+
+        try {
+            // --- FASE 1: REGISTRO DE IDENTIDAD (Controller) ---
+            System.out.println("[INFO] Registrando cliente a través de InfoFiscalController...");
+            InfoFiscalDTO registroDto = new InfoFiscalDTO(nifSesion, "Avenida de la Constitución 45", "600112233", "Suministros Dondarza");
+            infoFiscalCtrl.registrarInfoFiscal(registroDto);
+            System.out.println("[OK] Cliente persistido.");
+
+            // --- FASE 2: GESTIÓN DE CATÁLOGO (Controller) ---
+            System.out.println("[INFO] Creando artículo a través de ArticuloController...");
+            ArticuloDTO dtoArt = new ArticuloDTO(null, "Procesador Intel i9 14900K", "Última generación de procesadores", 
+                                                 new BigDecimal("650.50"), 20, true);
+            
+            ArticuloDTO artGuardado = articuloCtrl.crearArticulo(dtoArt);
+            System.out.println("[OK] Artículo registrado con ID: " + artGuardado.getId());
+
+            // --- FASE 3: PROCESAMIENTO DE COMPRA (Controller) ---
+            System.out.println("[INFO] Solicitando compra al CompraController...");
+            
+            List<LineaCompraDTO> lineas = new ArrayList<>();
+            lineas.add(new LineaCompraDTO(artGuardado.getId(), 2)); // 2 unidades
+
+            CompraRegistroDTO pedido = new CompraRegistroDTO();
+            pedido.setClienteNif(nifSesion);
+            pedido.setDireccionEnvio("Calle Principal s/n");
+            pedido.setLineas(lineas);
+
+            CompraRespuestaDTO respuesta = compraCtrl.procesarPedido(pedido);
+            
+            System.out.println("[OK] Compra finalizada. Total Facturado: " + respuesta.getPrecioTotal() + "€");
+
+            // --- FASE 4: BORRADO LÓGICO DE ARTÍCULO (Controller) ---
+            // Se cambia el estado a 'activo = false' (UPDATE), evitando disparar el Trigger de DELETE de Oracle
+            System.out.println("[INFO] Realizando borrado lógico del artículo ID: " + artGuardado.getId());
+            articuloCtrl.eliminarLogico(artGuardado.getId());
+            
+            // Verificación: El artículo ya no debería aparecer en la lista de activos
+            boolean sigueActivo = articuloCtrl.listarActivos().stream()
+                    .anyMatch(a -> a.getId().equals(artGuardado.getId()));
+            
+            System.out.println("[OK] Borrado lógico completado. ¿Sigue el artículo en la lista de activos?: " + sigueActivo);
+            System.out.println(">>> PROCESO COMPLETADO CON ÉXITO <<<");
+
+        } catch (Exception e) {
+            System.err.println("\n[ERROR DE LIBRERÍA] " + e.getMessage());
+        } finally {
+            context.close();
+        }
+    }
+}

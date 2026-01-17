@@ -1,0 +1,11 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+import com.adriandondarza.gestionpedidos.springboot.model.InfoFiscal;
+import java.util.List;
+
+public interface InfoFiscalService {
+    InfoFiscal guardar(InfoFiscal infoFiscal);
+    InfoFiscal buscarPorId(String nifCif);
+    List<InfoFiscal> listarTodos();
+    void eliminar(String nifCif);
+}

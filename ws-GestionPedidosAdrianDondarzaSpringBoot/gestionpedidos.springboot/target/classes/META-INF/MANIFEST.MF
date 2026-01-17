@@ -1,0 +1,25 @@
+Manifest-Version: 1.0
+Build-Jdk-Spec: 21
+Class-Path: spring-boot-starter-data-jpa-3.2.0.jar spring-boot-starter-a
+ op-3.2.0.jar spring-aop-6.1.1.jar aspectjweaver-1.9.20.1.jar spring-boo
+ t-starter-jdbc-3.2.0.jar HikariCP-5.0.1.jar spring-jdbc-6.1.1.jar hiber
+ nate-core-6.3.1.Final.jar jakarta.persistence-api-3.1.0.jar jakarta.tra
+ nsaction-api-2.0.1.jar jboss-logging-3.5.3.Final.jar hibernate-commons-
+ annotations-6.0.6.Final.jar jandex-3.1.2.jar classmate-1.6.0.jar byte-b
+ uddy-1.14.10.jar jaxb-runtime-4.0.4.jar jaxb-core-4.0.4.jar angus-activ
+ ation-2.0.1.jar txw2-4.0.4.jar istack-commons-runtime-4.1.2.jar jakarta
+ .inject-api-2.0.1.jar antlr4-runtime-4.10.1.jar spring-data-jpa-3.2.0.j
+ ar spring-data-commons-3.2.0.jar spring-orm-6.1.1.jar spring-context-6.
+ 1.1.jar spring-expression-6.1.1.jar micrometer-observation-1.12.0.jar m
+ icrometer-commons-1.12.0.jar spring-tx-6.1.1.jar spring-beans-6.1.1.jar
+  jakarta.annotation-api-2.1.1.jar slf4j-api-2.0.9.jar spring-aspects-6.
+ 1.1.jar ojdbc11-23.3.0.23.09.jar lombok-1.18.30.jar spring-boot-starter
+ -3.2.0.jar spring-boot-3.2.0.jar spring-boot-autoconfigure-3.2.0.jar sp
+ ring-boot-starter-logging-3.2.0.jar logback-classic-1.4.11.jar logback-
+ core-1.4.11.jar log4j-to-slf4j-2.21.1.jar log4j-api-2.21.1.jar jul-to-s
+ lf4j-2.0.9.jar snakeyaml-2.2.jar jakarta.xml.bind-api-4.0.1.jar jakarta
+ .activation-api-2.1.2.jar spring-core-6.1.1.jar spring-jcl-6.1.1.jar
+Implementation-Title: gestionpedidos.springboot
+Implementation-Version: 1.0.0
+Created-By: Maven Integration for Eclipse
+

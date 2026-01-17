@@ -1,0 +1,110 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+public class App {
+
+    // Constantes de prueba
+    private static final String NIF_CRUD = "B9876543B";
+    private static final String NOMBRE_CRUD = "Pedro Perez";
+    private static final String EMAIL_CRUD = "pedro.ruiz@testcorpaaaaaa.com";
+    private static final String ARTICULO_NOMBRE_CRUD = "Teclado Mecánico PROoo";
+    private static final String ARTICULO_DESC_CRUD = "Teclado compacto para gaming";
+    private static final BigDecimal ARTICULO_PRECIO_CRUD = new BigDecimal("122.00");
+    private static final Integer ARTICULO_STOCK_CRUD = 25;
+
+    public static void main(String[] args) {
+        // 1. Arrancar el contexto de Spring Boot (Carga el JAR del Backend)
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev")
+                .run(args);
+
+        System.out.println("\n>>> BACKEND CONECTADO DESDE EL FRONT <<<");
+
+        // 2. Obtener los Repositorios del contexto
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        try {
+            // --- SECCIÓN CRUD: CLIENTE ---
+            System.out.println("\n[OPERACIÓN] CLIENTE:");
+            Cliente cliente;
+            if (clienteRepo.existsById(NIF_CRUD)) {
+                cliente = clienteRepo.findById(NIF_CRUD).get();
+                System.out.println("- El cliente ya existía, lo recuperamos.");
+            } else {
+                cliente = new Cliente();
+                cliente.setNifCif(NIF_CRUD);
+                cliente.setNombre(NOMBRE_CRUD);
+                cliente.setEmail(EMAIL_CRUD);
+                cliente.setFechaRegistro(LocalDate.now());
+                cliente = clienteRepo.save(cliente);
+                System.out.println("- Cliente creado nuevo.");
+            }
+
+            // --- SECCIÓN CRUD: ARTICULO ---
+            System.out.println("\n[OPERACIÓN] ARTICULO:");
+            Articulo art = new Articulo();
+            art.setNombre(ARTICULO_NOMBRE_CRUD);
+            art.setDescripcion(ARTICULO_DESC_CRUD);
+            art.setPrecioActual(ARTICULO_PRECIO_CRUD);
+            art.setStock(ARTICULO_STOCK_CRUD);
+            art.setActivo(true);
+            art = articuloRepo.save(art);
+            System.out.println("- Artículo guardado con ID: " + art.getId());
+
+            // --- SECCIÓN CRUD: COMPRA ---
+            System.out.println("\n[OPERACIÓN] COMPRA:");
+            Compra compra = new Compra();
+            compra.setCliente(cliente);
+            compra.setFechaRealizada(LocalDateTime.now());
+            compra.setEstado(EstadoCompra.PENDIENTE);
+            compra.setPrecioTotal(art.getPrecioActual());
+            compra = compraRepo.save(compra);
+
+            // Línea de detalle (Unión)
+            ArticuloCompra linea = new ArticuloCompra();
+            linea.setCompra(compra);
+            linea.setArticulo(art);
+            linea.setUnidades(1);
+            linea.setPrecioCompra(art.getPrecioActual());
+            lineaRepo.save(linea);
+            System.out.println("- Compra y detalle registrados con éxito.");
+
+            // --- SECCIÓN READ: LISTADO ---
+            System.out.println("\n[READ] LISTADO TOTAL DE CLIENTES EN ORACLE:");
+            List<Cliente> todos = clienteRepo.findAll();
+            todos.forEach(c -> System.out.println("  > " + c.getNombre() + " | " + c.getNifCif()));
+
+            // --- OPCIÓN B: SIN BORRADO FÍSICO ---
+            System.out.println("\n[DELETE] REALIZANDO SOLO BORRADO LÓGICO:");
+            art.setActivo(false); // Desactivamos el artículo en lugar de borrarlo
+            articuloRepo.save(art);
+            System.out.println("- Artículo '" + art.getNombre() + "' desactivado correctamente.");
+
+            /* * NOTA: El borrado físico de cliente se comenta para evitar el error ORA-02292 
+             * ya que ahora tiene compras asociadas en la base de datos.
+             * * clienteRepo.deleteById(NIF_CRUD); 
+             */
+
+            System.out.println("\n-------------------------------------------------");
+            System.out.println(">>> DEMOSTRACIÓN FINALIZADA SIN ERRORES <<<");
+            System.out.println("-------------------------------------------------");
+
+        } catch (Exception e) {
+            System.err.println("\n>>> ERROR EN EL FRONT: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

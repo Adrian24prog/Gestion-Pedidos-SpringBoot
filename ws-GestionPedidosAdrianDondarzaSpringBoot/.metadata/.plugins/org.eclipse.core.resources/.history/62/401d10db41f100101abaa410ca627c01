@@ -1,0 +1,16 @@
+package com.adriandondarza.gestionpedidos.springboot.dto;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class InfoFiscalDTO {
+    private String nifCif;
+    private String direccionFiscal;
+    private String telefono;
+    // Opcional: puedes incluir el nombre del cliente si lo necesitas en el front
+    private String nombreCliente; 
+}

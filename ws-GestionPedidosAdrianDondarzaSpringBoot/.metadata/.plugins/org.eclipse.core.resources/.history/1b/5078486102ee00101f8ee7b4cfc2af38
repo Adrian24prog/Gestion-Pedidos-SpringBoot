@@ -1,0 +1,87 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+public class App {
+
+    public static void main(String[] args) {
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev")
+                .run(args);
+
+        String nifUnico = "B" + (int)(Math.random() * 1000000);
+        
+        System.out.println("\n>>> FASE 1: INSERCIÓN DE DATOS <<<");
+
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        try {
+            // 1. Crear Cliente e InfoFiscal
+            InfoFiscalDTO dto = new InfoFiscalDTO();
+            dto.setNifCif(nifUnico);
+            dto.setNombreCliente("Adrian Prueba Triggers");
+            dto.setDireccionFiscal("Calle de la Seguridad 100");
+            dto.setTelefono("912344556");
+            infoFiscalCtrl.registrarInfoFiscal(dto);
+
+            // 2. Crear Artículo
+            Articulo art = new Articulo();
+            art.setNombre("Disco Duro SSD");
+            art.setDescripcion("Disco de estado sólido 1TB");
+            art.setPrecioActual(new BigDecimal("120.00"));
+            art.setStock(10);
+            art.setActivo(true);
+            art = articuloRepo.save(art);
+
+            // 3. Crear Compra y Detalle (3 unidades)
+            Cliente cliente = clienteRepo.findById(nifUnico).get();
+            Compra compra = new Compra();
+            compra.setCliente(cliente);
+            compra.setFechaRealizada(LocalDateTime.now());
+            compra.setEstado(EstadoCompra.PENDIENTE);
+            compra.setPrecioTotal(art.getPrecioActual().multiply(new BigDecimal(3)));
+            compra = compraRepo.save(compra);
+
+            ArticuloCompra detalle = new ArticuloCompra();
+            detalle.setCompra(compra);
+            detalle.setArticulo(art);
+            detalle.setUnidades(3);
+            detalle.setPrecioCompra(art.getPrecioActual());
+            lineaRepo.save(detalle);
+
+            System.out.println(">>> ÉXITO: Registros insertados correctamente.");
+
+            // --- FASE 2: PRUEBA DE FUEGO (INTENTO DE BORRADO) ---
+            System.out.println("\n>>> FASE 2: PROBANDO PROTECCIÓN DE TRIGGERS <<<");
+            System.out.println("Intentando borrar el artículo con ID: " + art.getId() + "...");
+
+            // Esta línea debería hacer saltar el Trigger TRG_NO_BORRAR_ARTICULOS de Oracle
+            articuloRepo.delete(art);
+            
+            // Si el programa llega aquí, es que el trigger NO ha funcionado
+            System.out.println("ALERTA: El artículo se ha borrado. El trigger no está activo.");
+
+        } catch (Exception e) {
+            System.err.println("\n[BLOQUEO DE SEGURIDAD DETECTADO]");
+            System.err.println("Mensaje de Oracle: " + e.getMessage());
+            System.out.println("\n>>> CONCLUSIÓN: El Trigger ha impedido el borrado correctamente.");
+        }
+        
+        System.out.println("\n-------------------------------------------------");
+        System.out.println(">>> FIN DE LA DEMOSTRACIÓN DE SEGURIDAD <<<");
+        System.out.println("-------------------------------------------------");
+    }
+}

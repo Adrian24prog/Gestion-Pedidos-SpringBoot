@@ -1,0 +1,65 @@
+package com.adriandondarza.gestionpedidos.springboot.controller;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.CompraRegistroDTO;
+import com.adriandondarza.gestionpedidos.springboot.dto.CompraRespuestaDTO;
+import com.adriandondarza.gestionpedidos.springboot.service.CompraService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+
+import java.util.List;
+
+/**
+ * Controlador encargado de la gestión y procesamiento de órdenes de compra.
+ * <p>
+ * Actúa como el punto de entrada para la creación de nuevos pedidos.
+ * </p>
+ *
+ * @author Adrian Dondarza
+ * @version 1.0
+ * @since 2026-01-14
+ */
+@Controller
+public class CompraController {
+
+    @Autowired
+    private CompraService compraService;
+
+    /**
+     * Procesa la creación de un nuevo pedido en el sistema.
+     * <p>
+     * Se ha renombrado a 'procesarPedido' para coincidir con la llamada desde la App de escritorio.
+     * </p>
+     *
+     * @param peticion Objeto {@link CompraRegistroDTO} con la información del pedido.
+     * @return {@link CompraRespuestaDTO} con el resumen del pedido.
+     * @throws RuntimeException si ocurre un error durante el procesamiento.
+     */
+    public CompraRespuestaDTO procesarPedido(CompraRegistroDTO peticion) {
+        try {
+            return compraService.procesarCompra(peticion);
+        } catch (RuntimeException e) {
+            throw e;
+        }
+    }
+
+    /**
+     * Recupera el histórico de compras realizadas por un cliente específico.
+     */
+    public List<CompraRespuestaDTO> historialPorCliente(String nif) {
+        return compraService.obtenerComprasPorCliente(nif);
+    }
+
+    /**
+     * Obtiene una lista global de todas las compras registradas.
+     */
+    public List<CompraRespuestaDTO> listarTodasLasCompras() {
+        return compraService.obtenerTodas();
+    }
+
+    /**
+     * Actualiza el estado logístico de una compra específica.
+     */
+    public CompraRespuestaDTO actualizarEstado(Integer compraId, String nuevoEstado) {
+        return compraService.cambiarEstado(compraId, nuevoEstado);
+    }
+}

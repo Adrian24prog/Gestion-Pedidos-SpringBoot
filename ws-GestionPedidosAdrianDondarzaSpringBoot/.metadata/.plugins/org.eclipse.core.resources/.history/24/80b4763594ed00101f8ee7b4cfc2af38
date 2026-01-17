@@ -1,0 +1,101 @@
+package com.adriandondarza.gestionpedidos.springboot.front;
+
+import com.adriandondarza.gestionpedidos.springboot.GestionPedidosApplication;
+import com.adriandondarza.gestionpedidos.springboot.controller.InfoFiscalController;
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.*;
+import com.adriandondarza.gestionpedidos.springboot.repository.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+public class App {
+
+    public static void main(String[] args) {
+        // 1. Iniciar contexto
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(GestionPedidosApplication.class)
+                .profiles("dev")
+                .run(args);
+
+        // Generamos un NIF único para esta prueba
+        String nifPrueba = "B" + (int)(Math.random() * 999999);
+        
+        System.out.println("\n>>> INICIANDO PRUEBA DE BORRADO DE INFO FISCAL <<<");
+
+        // 2. Obtener componentes
+        InfoFiscalController infoFiscalCtrl = context.getBean(InfoFiscalController.class);
+        ClienteRepository clienteRepo = context.getBean(ClienteRepository.class);
+        ArticuloRepository articuloRepo = context.getBean(ArticuloRepository.class);
+        CompraRepository compraRepo = context.getBean(CompraRepository.class);
+        ArticuloCompraRepository lineaRepo = context.getBean(ArticuloCompraRepository.class);
+
+        try {
+            // --- PASO 1: CREACIÓN COMPLETA ---
+            System.out.println("\n[1] Creando Cliente, InfoFiscal, Artículo y Compra...");
+            
+            InfoFiscalDTO dto = new InfoFiscalDTO();
+            dto.setNifCif(nifPrueba);
+            dto.setNombreCliente("Usuario Prueba Borrado");
+            dto.setDireccionFiscal("Calle Falsa 123");
+            dto.setTelefono("900000000");
+            infoFiscalCtrl.registrarInfoFiscal(dto);
+
+            Articulo art = new Articulo();
+            art.setNombre("Producto Temporal");
+            art.setDescripcion("Este artículo y su compra sobrevivirán al cliente");
+            art.setPrecioActual(new BigDecimal("50.00"));
+            art.setStock(10);
+            art.setActivo(true);
+            art = articuloRepo.save(art);
+
+            Cliente cliente = clienteRepo.findById(nifPrueba).get();
+            Compra compra = new Compra();
+            compra.setCliente(cliente);
+            compra.setFechaRealizada(LocalDateTime.now());
+            compra.setEstado(EstadoCompra.PENDIENTE);
+            compra.setPrecioTotal(art.getPrecioActual());
+            compra = compraRepo.save(compra);
+
+            ArticuloCompra detalle = new ArticuloCompra();
+            detalle.setCompra(compra);
+            detalle.setArticulo(art);
+            detalle.setUnidades(1);
+            detalle.setPrecioCompra(art.getPrecioActual());
+            lineaRepo.save(detalle);
+
+            Integer idCompra = compra.getId();
+            System.out.println("- Todo creado correctamente. NIF: " + nifPrueba + ", ID Compra: " + idCompra);
+
+            // --- PASO 2: EL BORRADO CRÍTICO ---
+            System.out.println("\n[2] Ejecutando borrado de InfoFiscal...");
+            // Esto borra InfoFiscal -> Borra Cliente -> Pone Compra.cliente_nif a NULL
+            infoFiscalCtrl.eliminarInfoFiscal(nifPrueba);
+            System.out.println("- InfoFiscal eliminada.");
+
+            // --- PASO 3: VERIFICACIÓN ---
+            System.out.println("\n[3] Verificando resultados:");
+            
+            boolean clienteExiste = clienteRepo.existsById(nifPrueba);
+            System.out.println("  > ¿Existe el Cliente en la BD?: " + (clienteExiste ? "SÍ (Error)" : "NO (Correcto)"));
+
+            Compra compraEnBD = compraRepo.findById(idCompra).orElse(null);
+            if (compraEnBD != null) {
+                System.out.println("  > ¿La Compra sigue existiendo?: SÍ (Correcto)");
+                System.out.println("  > ¿NIF del Cliente en la compra?: " + 
+                        (compraEnBD.getCliente() == null ? "NULL (Correcto)" : compraEnBD.getCliente().getNifCif()));
+            } else {
+                System.out.println("  > ¿La Compra sigue existiendo?: NO (Error: se ha borrado en cascada)");
+            }
+
+            System.out.println("\n-------------------------------------------------");
+            System.out.println(">>> PRUEBA FINALIZADA CON ÉXITO <<<");
+            System.out.println("-------------------------------------------------");
+
+        } catch (Exception e) {
+            System.err.println("\n>>> ERROR: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

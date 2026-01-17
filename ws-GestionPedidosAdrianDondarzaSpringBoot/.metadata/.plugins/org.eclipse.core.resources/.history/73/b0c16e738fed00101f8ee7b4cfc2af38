@@ -1,0 +1,47 @@
+package com.adriandondarza.gestionpedidos.springboot.service;
+
+import com.adriandondarza.gestionpedidos.springboot.dto.InfoFiscalDTO;
+import com.adriandondarza.gestionpedidos.springboot.model.Cliente;
+import com.adriandondarza.gestionpedidos.springboot.model.InfoFiscal;
+import com.adriandondarza.gestionpedidos.springboot.repository.InfoFiscalRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class InfoFiscalService {
+
+    @Autowired
+    private InfoFiscalRepository infoFiscalRepository;
+
+    @Transactional
+    public InfoFiscalDTO registrarInfoFiscal(InfoFiscalDTO dto) {
+        // 1. Creamos las entidades
+        InfoFiscal info = new InfoFiscal(dto.getNifCif(), dto.getDireccionFiscal(), dto.getTelefono());
+        
+        // Creamos el cliente asociado (necesario para el MapsId y la Cascada)
+        Cliente cliente = new Cliente();
+        cliente.setNifCif(dto.getNifCif());
+        cliente.setNombre(dto.getNombreCliente());
+        // Aquí podrías setear más campos si el DTO los tuviera
+        
+        info.setCliente(cliente);
+
+        // 2. Guardamos (La cascada hace el resto)
+        InfoFiscal guardado = infoFiscalRepository.save(info);
+
+        // 3. Devolvemos el DTO actualizado
+        return new InfoFiscalDTO(
+            guardado.getNifCif(), 
+            guardado.getDireccionFiscal(), 
+            guardado.getTelefono(),
+            guardado.getCliente().getNombre()
+        );
+    }
+
+    @Transactional
+    public void eliminarInfoFiscal(String nif) {
+        // Al borrar la InfoFiscal, se borrará el Cliente por CascadeType.ALL
+        infoFiscalRepository.deleteById(nif);
+    }
+}
